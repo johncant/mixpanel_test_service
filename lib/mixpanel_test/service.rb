@@ -49,25 +49,33 @@ class MixpanelTest::Service
           if cached_js = @mixpanel_js_cache[req[:uri][:path].to_s]
             next [200, {'Content-Type' => 'text/html'}, [cached_js]]
           elsif req[:uri][:path].to_s.match(/\/libs\//)
+            #puts "PATH: #{puts req[:uri][:path]}"
             cached_js = @mixpanel_js_cache[req[:uri][:path].to_s] ||= Net::HTTP.get(URI("http://cdn.mxpnl.com#{req[:uri][:path].to_s}")).gsub('api.mixpanel.com', "localhost:#{options[:port]}")
             next [200, {'Content-Type' => 'text/html'}, [cached_js]]
           else
 
             # Parse the query string
-            query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge)
+            query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge) || {}
 
-            # Decode the data
-            data = Base64.decode64(query_params["data"])
 
-            # Eliminate extemporaneous chars outside the JSON
-            data = data.match(/\{.*\}/)[0]
+            if query_params["data"]
 
-            # Parse with JSON
-            data = JSON.parse(data)
+              # Decode the data
+              data = Base64.decode64(URI.unescape(query_params["data"]))
 
-            # Save
-            transaction do
-              @events << data
+              # Eliminate extemporaneous chars outside the JSON
+              data = data.match(/\{.*\}/)[0]
+
+              # Parse with JSON
+              data = JSON.parse(data)
+
+              # Save
+              transaction do
+                @events << data
+              end
+
+            else
+#              puts "No data. #{req[:uri].inspect}"
             end
 
             next [200, {'Content-Type' => 'text/html'}, [""]]
