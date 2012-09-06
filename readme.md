@@ -5,6 +5,8 @@
 </p>
 
 <pre>
+  require "mixpanel_test/service"
+
   test_service = MixpanelTestService.new(:port => 3001)
 
   // Post some stuff

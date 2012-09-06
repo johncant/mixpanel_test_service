@@ -39,6 +39,30 @@ describe MixpanelTest::Service do
     @service.transaction do
       @service.events.count.should == 1
     end
+
+  end
+
+  it "should fetch a modified mixpanel javascript API" do
+    js = Net::HTTP.get(URI("http://localhost:#{TEST_PORT}/libs/mixpanel-2.0.min.js"))
+    js.should match /function/
+    js.should match /localhost:#{TEST_PORT}/
+  end
+
+  it "should cache the modified mixpanel javascript API" do
+    js = Net::HTTP.get(URI("http://localhost:#{TEST_PORT}/libs/mixpanel-2.0.min.js"))
+    js = Net::HTTP.get(URI("http://localhost:#{TEST_PORT}/libs/mixpanel-2.0.min.js"))
+    js.should match /function/
+    js.should match /localhost:#{TEST_PORT}/
+  end
+
+  after(:all) do
+
+    @service.stop
+
+    Thread.pass until @service.stopped?
+
+    @service.stopped?.should == true
+
   end
 
 end

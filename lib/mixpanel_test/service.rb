@@ -16,38 +16,62 @@ class MixpanelTest::Service
     end
   end
 
+  def shutdown
+    @server.shutdown
+  end
+
+  def stopped?
+    @server.stopped?
+  end
+
+  def stop
+    @server.stop
+  end
+
   def initialize(options={})
 
     @events = []
     @events_mutex = Mutex.new
 
-    puts "Starting thread"
+    @mixpanel_js_cache = {}
 
 #    started = ConditionVariable.new
 
       puts "Starting server"
 # :success_opener => lambda { @events_mutex.synchonize do started.signal end})
-      Net::HTTP::Server.run(options.merge(:background => true)) do |req, stream|
+
+      @options = {:port => 3001}.merge(options).merge(:background => true)
+
+      @server = Net::HTTP::Server.run(@options) do |req, stream|
         begin
+          puts req[:uri].inspect
 
-          # Parse the query string
-          query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge)
+          if cached_js = @mixpanel_js_cache[req[:uri][:path].to_s]
+            next [200, {'Content-Type' => 'text/html'}, [cached_js]]
+          elsif req[:uri][:path].to_s.match(/\/libs\//)
+            cached_js = @mixpanel_js_cache[req[:uri][:path].to_s] ||= Net::HTTP.get(URI("http://cdn.mxpnl.com#{req[:uri][:path].to_s}")).gsub('api.mixpanel.com', "localhost:#{options[:port]}")
+            next [200, {'Content-Type' => 'text/html'}, [cached_js]]
+          else
 
-          # Decode the data
-          data = Base64.decode64(query_params["data"])
+            # Parse the query string
+            query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge)
 
-          # Eliminate extemporaneous chars outside the JSON
-          data = data.match(/{.*}/)[0]
+            # Decode the data
+            data = Base64.decode64(query_params["data"])
 
-          # Parse with JSON
-          data = JSON.parse(data)
+            # Eliminate extemporaneous chars outside the JSON
+            data = data.match(/\{.*\}/)[0]
 
-          # Save
-          transaction do
-            @events << data
+            # Parse with JSON
+            data = JSON.parse(data)
+
+            # Save
+            transaction do
+              @events << data
+            end
+
+            next [200, {'Content-Type' => 'text/html'}, [""]]
           end
-
-          next [200, {'Content-Type' => 'text/html'}, [""]]
         rescue Exception => e
           puts $!, *$@
         end
