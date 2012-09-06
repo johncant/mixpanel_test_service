@@ -25,29 +25,26 @@ class MixpanelTest::Service
 
 #    started = ConditionVariable.new
 
-    Thread.new do
       puts "Starting server"
 # :success_opener => lambda { @events_mutex.synchonize do started.signal end})
-      Net::HTTP::Server.run(options) do |req, stream|
+      Net::HTTP::Server.run(options.merge(:background => true)) do |req, stream|
         begin
 
           # Parse the query string
           query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge)
 
-          unless query_params[:ignore]
-            # Decode the data
-            data = Base64.decode64(query_params["data"])
+          # Decode the data
+          data = Base64.decode64(query_params["data"])
 
-            # Eliminate extemporaneous chars outside the JSON
-            data = data.match(/{.*}/)[0]
+          # Eliminate extemporaneous chars outside the JSON
+          data = data.match(/{.*}/)[0]
 
-            # Parse with JSON
-            data = JSON.parse(data)
+          # Parse with JSON
+          data = JSON.parse(data)
 
-            # Save
-            transaction do
-              @events << data
-            end
+          # Save
+          transaction do
+            @events << data
           end
 
           next [200, {'Content-Type' => 'text/html'}, [""]]
@@ -56,13 +53,11 @@ class MixpanelTest::Service
         end
       end
 
-    end
 
 #    @events_mutex.synchronize do
 #      started.wait(@events_mutex)
 #    end
     # This point can only be reached if the server starts
-    sleep 1
     puts "Thread started"
     
   end

@@ -16,7 +16,4 @@
 </pre>
 
 <h2>Dependency problems</h2>
-<p>This gem relies on a bug fix that has not been pulled yet</p>
-
-<h2>Waiting for the server to start<h2>
-<p>Its now 2am. I made the code sleep for 1 second while the server starts up in a thread.</p>
+<p>This gem relies on a bug fix that in net-http-server which has not yet been published</p>
