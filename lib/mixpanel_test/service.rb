@@ -9,6 +9,16 @@ class MixpanelTest::Service
 
   attr_accessor :events
 
+  @@js_headers = {'Connection' => "keep-alive", "Content-Type" => "application/x-javascript", "Transfer-Encoding" => "chunked", 'Cache-Control' => 'max-age=86400'}
+  @@api_headers = {
+    "Access-Control-Allow-Headers" => "X-Requested-With", 
+    "Access-Control-Allow-Methods" => "GET, POST, OPTIONS", 
+    "Access-Control-Allow-Origin" => "*", 
+    "Access-Control-Max-Age" => "1728000", 
+    "Cache-Control" => "no-cache, no-store", 
+    "Connection" => "close", 
+    "Content-Type" => "application/json"}
+
   public
   def transaction
     @events_mutex.synchronize do
@@ -47,11 +57,11 @@ class MixpanelTest::Service
           puts req[:uri].inspect
 
           if cached_js = @mixpanel_js_cache[req[:uri][:path].to_s]
-            next [200, {'Content-Type' => 'text/html'}, [cached_js]]
+            next [200, @@js_headers, [cached_js]]
           elsif req[:uri][:path].to_s.match(/\/libs\//)
             #puts "PATH: #{puts req[:uri][:path]}"
             cached_js = @mixpanel_js_cache[req[:uri][:path].to_s] ||= Net::HTTP.get(URI("http://cdn.mxpnl.com#{req[:uri][:path].to_s}")).gsub('api.mixpanel.com', "localhost:#{options[:port]}")
-            next [200, {'Content-Type' => 'text/html'}, [cached_js]]
+            next [200, @@js_headers, [cached_js]]
           else
 
             # Parse the query string
@@ -78,7 +88,7 @@ class MixpanelTest::Service
 #              puts "No data. #{req[:uri].inspect}"
             end
 
-            next [200, {'Content-Type' => 'text/html'}, [""]]
+            next [200, @@api_headers, [1]]
           end
         rescue Exception => e
           puts $!, *$@
