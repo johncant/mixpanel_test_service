@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "mixpanel_test_service"
-  s.version = "0.0.4"
+  s.version = "0.0.5"
   s.date = '2012-09-05'
   s.summary = "test your Mixpanel integration"
   s.description = "Mixpanel test service - logs all Mixpanel events sent to it"
