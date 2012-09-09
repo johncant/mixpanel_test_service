@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = "Mixpanel test service - logs all Mixpanel events sent to it"
   s.authors = "John Cant"
   s.email = "a.johncant@gmail.com"
-  s.files = Dir["test/**/*"] + Dir["lib/*"]
+  s.files = Dir["test/**/*"] + Dir["lib/**/*"]
   s.homepage =  'https://github.com/johncant/mixpanel_test_service'
   s.require_paths = ["lib"]
 
