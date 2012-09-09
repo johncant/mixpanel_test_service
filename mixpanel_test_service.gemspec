@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.authors = "John Cant"
   s.email = "a.johncant@gmail.com"
   s.files = Dir["test/**/*"] + Dir["lib/*"]
-  s.homepage =  'http://rubygems.org/gems/mixpanel_test_service'
+  s.homepage =  'https://github.com/johncant/mixpanel_test_service'
   s.require_paths = ["lib"]
 
   s.add_dependency("net-http-server", "0.2.2")
