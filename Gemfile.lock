@@ -1,9 +1,8 @@
-GIT
-  remote: https://github.com/johncant/net-http-server
-  revision: c806f049049a0195426a1c1d10e0e59536fae0c3
+PATH
+  remote: .
   specs:
-    net-http-server (0.2.1)
-      parslet (~> 1.0)
+    mixpanel_test_service (0.0.1)
+      net-http-server (= 0.2.2)
 
 GEM
   remote: http://rubygems.org/
@@ -12,6 +11,8 @@ GEM
     coderay (1.0.7)
     diff-lcs (1.1.3)
     method_source (0.8)
+    net-http-server (0.2.2)
+      parslet (~> 1.0)
     parslet (1.4.0)
       blankslate (~> 2.0)
     pry (0.9.10)
@@ -32,6 +33,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  net-http-server!
+  mixpanel_test_service!
   pry
   rspec
