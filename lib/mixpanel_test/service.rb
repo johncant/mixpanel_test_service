@@ -45,63 +45,51 @@ class MixpanelTest::Service
 
     @mixpanel_js_cache = {}
 
-#    started = ConditionVariable.new
+    @options = {:port => 3001}.merge(options).merge(:background => true)
 
-      puts "Starting server"
-# :success_opener => lambda { @events_mutex.synchonize do started.signal end})
+    @server = Net::HTTP::Server.run(@options) do |req, stream|
 
-      @options = {:port => 3001}.merge(options).merge(:background => true)
+      begin
 
-      @server = Net::HTTP::Server.run(@options) do |req, stream|
-        begin
-          puts req[:uri].inspect
+        if cached_js = @mixpanel_js_cache[req[:uri][:path].to_s]
+          next [200, @@js_headers, [cached_js]]
+        elsif req[:uri][:path].to_s.match(/\/libs\//)
+          #puts "PATH: #{puts req[:uri][:path]}"
+          cached_js = @mixpanel_js_cache[req[:uri][:path].to_s] ||= Net::HTTP.get(URI("http://cdn.mxpnl.com#{req[:uri][:path].to_s}")).gsub('api.mixpanel.com', "localhost:#{options[:port]}")
+          next [200, @@js_headers, [cached_js]]
+        else
 
-          if cached_js = @mixpanel_js_cache[req[:uri][:path].to_s]
-            next [200, @@js_headers, [cached_js]]
-          elsif req[:uri][:path].to_s.match(/\/libs\//)
-            #puts "PATH: #{puts req[:uri][:path]}"
-            cached_js = @mixpanel_js_cache[req[:uri][:path].to_s] ||= Net::HTTP.get(URI("http://cdn.mxpnl.com#{req[:uri][:path].to_s}")).gsub('api.mixpanel.com', "localhost:#{options[:port]}")
-            next [200, @@js_headers, [cached_js]]
-          else
-
-            # Parse the query string
-            query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge) || {}
+          # Parse the query string
+          query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge) || {}
 
 
-            if query_params["data"]
+          if query_params["data"]
 
-              # Decode the data
-              data = Base64.decode64(URI.unescape(query_params["data"]))
+            # Decode the data
+            data = Base64.decode64(URI.unescape(query_params["data"]))
 
-              # Eliminate extemporaneous chars outside the JSON
-              data = data.match(/\{.*\}/)[0]
+            # Eliminate extemporaneous chars outside the JSON
+            data = data.match(/\{.*\}/)[0]
 
-              # Parse with JSON
-              data = JSON.parse(data)
+            # Parse with JSON
+            data = JSON.parse(data)
 
-              # Save
-              transaction do
-                @events << data
-              end
-
-            else
-#              puts "No data. #{req[:uri].inspect}"
+            # Save
+            transaction do
+              @events << data
             end
 
-            next [200, @@api_headers, [1]]
+          else
+#              puts "No data. #{req[:uri].inspect}"
           end
-        rescue Exception => e
-          puts $!, *$@
+
+          next [200, @@api_headers, [1]]
         end
+      rescue Exception => e
+        puts $!, *$@
       end
+    end
 
-
-#    @events_mutex.synchronize do
-#      started.wait(@events_mutex)
-#    end
-    # This point can only be reached if the server starts
-    puts "Thread started"
-    
   end
 
 end
