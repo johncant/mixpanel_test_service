@@ -29,3 +29,20 @@ $ curl localhost:3001/libs/mixpanel-2.0.min.js # Or any other file in /libs
 
 <h2>Limitations</h2>
 <p>This gem proxies the mixpanel JS API file, but it does not distribute it. You will need internet to run your tests.</p>
+
+<h2>Known issues</h2>
+<p>Sometimes, this gem gives me the following errors which come from net-http-server itself.</p>
+
+<pre>
+[Wed Sep 12 20:22:08 2012] /home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/responses.rb:98:in `write'
+/home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/responses.rb:98:in `block (2 levels) in write_headers'
+/home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/responses.rb:97:in `each_line'
+/home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/responses.rb:97:in `block in write_headers'
+/home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/responses.rb:94:in `each'
+/home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/responses.rb:94:in `write_headers'
+/home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/responses.rb:166:in `write_response'
+/home/john/.rvm/gems/ruby-1.9.2-p290/gems/net-http-server-0.2.2/lib/net/http/server/daemon.rb:124:in `serve'
+/home/john/.rvm/rubies/ruby-1.9.2-p290/lib/ruby/1.9.1/gserver.rb:211:in `block (2 levels) in start'
+</pre>
+
+<p>It appears these errors are caused by the connection being closed before mixpanel_test_service has finished its response. For instance, this might be caused by instrumenting a submit button without delaying the form submit. The page will change, canceling the AJAX halfway through, and causing</p>

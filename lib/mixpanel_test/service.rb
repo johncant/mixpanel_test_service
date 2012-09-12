@@ -84,7 +84,7 @@ module MixpanelTest
   #              puts "No data. #{req[:uri].inspect}"
             end
 
-            next [200, @@api_headers, [1]]
+            next [200, @@api_headers, ["1"]]
           end
         rescue Exception => e
           puts $!, *$@
