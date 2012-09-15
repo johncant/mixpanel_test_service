@@ -14,13 +14,14 @@ describe MixpanelTest::Service do
       Net::HTTP.get(URI("http://localhost:#{TEST_PORT}"))
     }.should raise_error Errno::ECONNREFUSED
 
-    @service = MixpanelTest::Service.new(:port => TEST_PORT)
+    @service = MixpanelTest::Service.new(:port => TEST_PORT, :log_events => true)
 
     @service.should_not == nil
 
     @service.transaction do
       @service.events.should == []
     end
+    @service.all_events.should == []
 
   end
 
@@ -39,6 +40,7 @@ describe MixpanelTest::Service do
     @service.transaction do
       @service.events.count.should == 1
     end
+    @service.all_events.count.should == 1
 
   end
 

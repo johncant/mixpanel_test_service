@@ -8,7 +8,9 @@ require 'net/http'
 module MixpanelTest
   class Service
 
-    attr_accessor :events
+    attr_accessor :events   # The live queue of received events
+    attr_writer :log_events # Whether to log all events 
+    attr_reader :all_events # Log of all events
 
     @@js_headers = {'Connection' => "keep-alive", "Content-Type" => "application/x-javascript", "Transfer-Encoding" => "chunked", 'Cache-Control' => 'max-age=86400'}
     @@api_headers = {
@@ -42,6 +44,8 @@ module MixpanelTest
     def initialize(options={})
 
       @events = []
+      @all_events = []
+      @log_events = options[:log_events]
       @events_mutex = Mutex.new
 
       @mixpanel_js_cache = {}
@@ -79,6 +83,8 @@ module MixpanelTest
               transaction do
                 @events << data
               end
+
+              @all_events << data if @log_events
 
             else
   #              puts "No data. #{req[:uri].inspect}"
