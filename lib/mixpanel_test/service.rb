@@ -1,16 +1,21 @@
 require 'rubygems'
 require 'net/http/server'
+require File.expand_path('../parser', __FILE__)
+require File.expand_path('../analysis', __FILE__)
 require 'thread'
-require 'base64'
 require 'json'
 require 'net/http'
 
 module MixpanelTest
   class Service
+    class PathNotFoundError < StandardError ; end
+    class NoDataError < StandardError ; end
 
-    attr_accessor :events   # The live queue of received events
+    include MixpanelTest::Parser::InstanceMethods
+
+    attr_accessor :events, :people   # The live queue of received events
     attr_writer :log_events # Whether to log all events 
-    attr_reader :all_events # Log of all events
+    attr_reader :all_events, :all_people, :all_imported_events # Log of all events
 
     @@js_headers = {'Connection' => "keep-alive", "Content-Type" => "application/x-javascript", "Transfer-Encoding" => "chunked", 'Cache-Control' => 'max-age=86400'}
     @@api_headers = {
@@ -29,23 +34,26 @@ module MixpanelTest
       end
     end
 
-    def shutdown
-      @server.shutdown
-    end
-
-    def stopped?
-      @server.stopped?
-    end
-
     def stop
       @server.stop
+      Thread.pass until @server.stopped
+    end
+
+    def analysis
+      @analysis ||= Analysis.new
+      @analysis.add_events(@all_events)
+      @analysis
     end
 
     def initialize(options={})
 
       @events = []
+      @people = []
       @all_events = []
+      @all_people = []
+      @all_imported_events = []
       @log_events = options[:log_events]
+      @log_people = options[:log_people]
       @events_mutex = Mutex.new
 
       @mixpanel_js_cache = {}
@@ -64,30 +72,38 @@ module MixpanelTest
             next [200, @@js_headers, [cached_js]]
           else
 
-            # Parse the query string
-            query_params = req[:uri][:query].to_s.split('&').map do |s| s.split('=') end.map do |a| {a[0] => a[1]} end.inject(&:merge) || {}
+            puts "#{req[:headers].inspect}"
 
+            # Parse the query string
+            query_params = parse_query_params(req[:uri][:query])
 
             if query_params["data"]
+              data = decode_data(query_params["data"])
 
-              # Decode the data
-              data = Base64.decode64(URI.unescape(query_params["data"]))
+              if req[:uri][:path].to_s.match(/engage/)
 
-              # Eliminate extemporaneous chars outside the JSON
-              data = data.match(/\{.*\}/)[0]
+                # Save
+                transaction do
+                  @people << data
+                  @all_people << data if @log_people
+                end
+              elsif req[:uri][:path].to_s.match(/track/)
+                # Save
 
-              # Parse with JSON
-              data = JSON.parse(data)
-
-              # Save
-              transaction do
-                @events << data
+                transaction do
+                  @events << data
+                  @all_events << data if @log_events
+                end
+              elsif req[:uri][:path].to_s.match(/import/)
+                transaction do
+                  @all_imported_events << data
+                end
+              else
+                raise PathNotFoundError
               end
 
-              @all_events << data if @log_events
-
             else
-  #              puts "No data. #{req[:uri].inspect}"
+              raise NoDataError
             end
 
             next [200, @@api_headers, ["1"]]
