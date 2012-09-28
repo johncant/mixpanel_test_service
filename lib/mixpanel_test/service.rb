@@ -35,8 +35,10 @@ module MixpanelTest
     end
 
     def stop
+      puts "Stopping Mixpanel test service"
       @server.stop
-      Thread.pass until @server.stopped
+      Thread.pass until @server.stopped?
+      puts "Mixpanel test server stopped"
     end
 
     def analysis
@@ -71,8 +73,6 @@ module MixpanelTest
             cached_js = @mixpanel_js_cache[req[:uri][:path].to_s] ||= Net::HTTP.get(URI("http://cdn.mxpnl.com#{req[:uri][:path].to_s}")).gsub('api.mixpanel.com', "localhost:#{options[:port]}")
             next [200, @@js_headers, [cached_js]]
           else
-
-            puts "#{req[:headers].inspect}"
 
             # Parse the query string
             query_params = parse_query_params(req[:uri][:query])
